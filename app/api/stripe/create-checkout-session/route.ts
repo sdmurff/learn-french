@@ -29,23 +29,18 @@ export async function POST(request: NextRequest) {
     // Get email via RPC function that queries auth.users
     let userEmail: string | null = null;
 
-    try {
-      const { data: rpcResult } = await supabase.rpc('get_user_email', { user_id: userId });
-      if (rpcResult && rpcResult.length > 0) {
-        userEmail = rpcResult[0].email;
-      }
-    } catch (rpcError) {
-      console.log('RPC function not available, trying admin API');
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('get_user_email', { user_id: userId });
+
+    if (rpcError) {
+      console.error('RPC function error:', rpcError);
+      return NextResponse.json(
+        { error: 'Failed to get user information. Please ensure the get_user_email function is created in Supabase.' },
+        { status: 500 }
+      );
     }
 
-    // Fallback to admin API
-    if (!userEmail) {
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
-      if (!userError && user?.email) {
-        userEmail = user.email;
-      } else {
-        console.error('Failed to get user email:', userError);
-      }
+    if (rpcResult && rpcResult.length > 0) {
+      userEmail = rpcResult[0].email;
     }
 
     if (!userEmail) {
