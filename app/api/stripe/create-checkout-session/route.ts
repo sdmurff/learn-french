@@ -16,31 +16,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Get user's email from auth.users
-    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get or create profile for stripe_customer_id
+    // Get user's email - try multiple methods
+    // First, try to get profile with stripe_customer_id
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')
       .eq('id', userId)
       .single();
 
+    // Get email via RPC function that queries auth.users
+    let userEmail: string | null = null;
+
+    try {
+      const { data: rpcResult } = await supabase.rpc('get_user_email', { user_id: userId });
+      if (rpcResult && rpcResult.length > 0) {
+        userEmail = rpcResult[0].email;
+      }
+    } catch (rpcError) {
+      console.log('RPC function not available, trying admin API');
+    }
+
+    // Fallback to admin API
+    if (!userEmail) {
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+      if (!userError && user?.email) {
+        userEmail = user.email;
+      } else {
+        console.error('Failed to get user email:', userError);
+      }
+    }
+
+    if (!userEmail) {
+      return NextResponse.json(
+        { error: 'User email not found. Please ensure you are logged in.' },
+        { status: 404 }
+      );
+    }
+
     let customerId = profile?.stripe_customer_id;
 
     // Create Stripe customer if doesn't exist
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
+        email: userEmail,
         metadata: {
           supabase_user_id: userId,
         },
@@ -56,6 +76,9 @@ export async function POST(request: NextRequest) {
           stripe_customer_id: customerId
         });
     }
+
+    // Get the origin for redirect URLs
+    const origin = request.headers.get('origin') || request.headers.get('referer')?.split('/').slice(0, 3).join('/') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     // Create checkout session with 7-day free trial
     const session = await stripe.checkout.sessions.create({
@@ -74,8 +97,8 @@ export async function POST(request: NextRequest) {
           supabase_user_id: userId,
         },
       },
-      success_url: `${request.headers.get('origin')}/profile?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.headers.get('origin')}/pricing`,
+      success_url: `${origin}/profile?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/pricing`,
       metadata: {
         supabase_user_id: userId,
       },
