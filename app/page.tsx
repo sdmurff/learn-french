@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Sentence = {
   id: string;
@@ -15,6 +17,9 @@ const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const TOPICS = ['General', 'Travel', 'Food', 'Daily Life'];
 
 export default function Home() {
+  const router = useRouter();
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const [cefrLevel, setCefrLevel] = useState('A1');
   const [topic, setTopic] = useState('General');
   const [sentence, setSentence] = useState<Sentence | null>(null);
@@ -296,7 +301,7 @@ export default function Home() {
         body: JSON.stringify({
           sentenceId: sentence.id,
           attemptText,
-          userId: null,
+          userId: user?.id || null,
         }),
       });
 
@@ -312,6 +317,11 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Navigation */}
@@ -322,12 +332,37 @@ export default function Home() {
               <span className="text-2xl">🇫🇷</span>
               <span className="text-xl font-bold text-slate-900">French Dictation</span>
             </div>
-            <Link
-              href="/sentences"
-              className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-            >
-              View History
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/sentences"
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+              >
+                View History
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/profile"
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </nav>
