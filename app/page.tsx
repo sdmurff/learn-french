@@ -387,6 +387,12 @@ export default function Home() {
               >
                 View History
               </Link>
+              <Link
+                href="/pricing"
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+              >
+                Pricing
+              </Link>
               {user ? (
                 <>
                   <Link

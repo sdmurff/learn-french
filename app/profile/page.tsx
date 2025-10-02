@@ -159,12 +159,12 @@ export default function ProfilePage() {
           <p className="text-lg text-slate-600">{user.email}</p>
         </header>
 
-        {/* Subscription Status */}
-        {subscription && (
-          <div className="mb-12 bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">Subscription Status</h2>
+        {/* Subscription Management */}
+        <div className="mb-12 bg-white rounded-2xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Subscription</h2>
+              {subscription?.subscription_status ? (
                 <div className="flex items-center gap-3">
                   <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
                     subscription.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
@@ -188,30 +188,29 @@ export default function ProfilePage() {
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="flex gap-3">
-                {(subscription.subscription_status === 'active' ||
-                  subscription.subscription_status === 'trialing' ||
-                  subscription.subscription_status === 'past_due') ? (
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                    className="px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {portalLoading ? 'Loading...' : 'Manage Subscription'}
-                  </button>
-                ) : (
-                  <Link
-                    href="/pricing"
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all"
-                  >
-                    Upgrade to Premium
-                  </Link>
-                )}
-              </div>
+              ) : (
+                <p className="text-slate-600">Manage your billing, payment methods, and subscriptions</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {portalLoading ? 'Loading...' : 'Manage Subscription'}
+              </button>
+              {(!subscription?.subscription_status || !['active', 'trialing', 'past_due'].includes(subscription.subscription_status)) && (
+                <Link
+                  href="/pricing"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all"
+                >
+                  Upgrade to Premium
+                </Link>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         {stats && (
           <>

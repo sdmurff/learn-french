@@ -58,7 +58,7 @@ export default function PaywallModal({ isOpen, onClose, attemptsUsed, dailyLimit
               </li>
             </ul>
             <div className="text-2xl font-bold text-indigo-600">
-              $9.99<span className="text-sm font-normal text-slate-600">/month</span>
+              $1.00<span className="text-sm font-normal text-slate-600">/month</span>
             </div>
           </div>
 

@@ -120,7 +120,7 @@ export default function PricingPage() {
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-white mb-2">Premium</h3>
               <div className="text-4xl font-bold text-white mb-2">
-                $9.99
+                $1.00
                 <span className="text-lg font-normal text-indigo-100">/month</span>
               </div>
               <p className="text-indigo-100">7-day free trial</p>

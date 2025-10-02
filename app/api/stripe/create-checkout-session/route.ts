@@ -18,26 +18,29 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's email and check for existing customer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email, stripe_customer_id')
-      .eq('id', userId)
-      .single();
+    // Get user's email from auth.users
+    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
 
-    if (!profile) {
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    let customerId = profile.stripe_customer_id;
+    // Get or create profile for stripe_customer_id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single();
+
+    let customerId = profile?.stripe_customer_id;
 
     // Create Stripe customer if doesn't exist
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: profile.email,
+        email: user.email,
         metadata: {
           supabase_user_id: userId,
         },
@@ -45,11 +48,13 @@ export async function POST(request: NextRequest) {
 
       customerId = customer.id;
 
-      // Save customer ID to database
+      // Save customer ID to database (upsert in case profile doesn't exist)
       await supabase
         .from('profiles')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', userId);
+        .upsert({
+          id: userId,
+          stripe_customer_id: customerId
+        });
     }
 
     // Create checkout session with 7-day free trial
