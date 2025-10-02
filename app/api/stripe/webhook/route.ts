@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
             trial_end_date: subscription.trial_end
               ? new Date(subscription.trial_end * 1000).toISOString()
               : null,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_end: subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000).toISOString()
+              : null,
           })
           .eq('id', userId);
 
