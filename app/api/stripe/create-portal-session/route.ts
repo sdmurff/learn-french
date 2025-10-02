@@ -32,10 +32,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the origin for return URL
+    const origin = request.headers.get('origin') || request.headers.get('referer')?.split('/').slice(0, 3).join('/') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${request.headers.get('origin')}/profile`,
+      return_url: `${origin}/profile`,
     });
 
     return NextResponse.json({ url: session.url });
