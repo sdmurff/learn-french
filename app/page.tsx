@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import PaywallModal from '@/components/PaywallModal';
 
 type Sentence = {
   id: string;
@@ -41,6 +42,10 @@ export default function Home() {
   const [hasListened, setHasListened] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
 
+  // Usage tracking
+  const [usageData, setUsageData] = useState<any>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const recordedAudioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -52,6 +57,30 @@ export default function Home() {
     loadInitialSentence();
     fetchAllSentences();
   }, []);
+
+  // Check usage on mount and when user changes
+  useEffect(() => {
+    if (user) {
+      checkUsage();
+    }
+  }, [user]);
+
+  const checkUsage = async () => {
+    if (!user) return;
+
+    try {
+      const res = await fetch('/api/check-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await res.json();
+      setUsageData(data);
+    } catch (error) {
+      console.error('Error checking usage:', error);
+    }
+  };
 
   // Debug: Log when audioUrl or loading changes
   useEffect(() => {
@@ -291,17 +320,33 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
-    if (!sentence) return;
+    if (!sentence || !user) return;
+
+    // Check usage before submitting
+    if (usageData && !usageData.canUse && !usageData.isPremium) {
+      setShowPaywall(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Record usage
+      if (!usageData?.isPremium) {
+        await fetch('/api/record-usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        });
+      }
+
       const res = await fetch('/api/grade-attempt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sentenceId: sentence.id,
           attemptText,
-          userId: user?.id || null,
+          userId: user.id,
         }),
       });
 
@@ -309,6 +354,9 @@ export default function Home() {
 
       const data = await res.json();
       setWrittenScore(data.score);
+
+      // Refresh usage data
+      await checkUsage();
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to submit attempt. Please try again.');
@@ -635,8 +683,21 @@ export default function Home() {
           <p className="text-sm text-slate-500">
             Practice makes perfect · Keep learning French
           </p>
+          {usageData && !usageData.isPremium && (
+            <p className="text-xs text-slate-400 mt-2">
+              {usageData.attemptsRemaining} of {usageData.dailyLimit} free attempts remaining today
+            </p>
+          )}
         </footer>
       </div>
+
+      {/* Paywall Modal */}
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        attemptsUsed={usageData?.attemptsUsed || 0}
+        dailyLimit={usageData?.dailyLimit || 5}
+      />
     </main>
   );
 }

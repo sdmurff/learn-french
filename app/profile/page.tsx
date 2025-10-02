@@ -21,19 +21,70 @@ type AttemptStats = {
   }[];
 };
 
+type SubscriptionData = {
+  subscription_status: string;
+  trial_end_date: string | null;
+  current_period_end: string | null;
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<AttemptStats | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     } else if (user) {
       fetchUserStats();
+      fetchSubscription();
     }
   }, [user, authLoading, router]);
+
+  const fetchSubscription = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('subscription_status, trial_end_date, current_period_end')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setSubscription(data);
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!user) return;
+    setPortalLoading(true);
+
+    try {
+      const res = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to open subscription management. Please try again.');
+      setPortalLoading(false);
+    }
+  };
 
   const fetchUserStats = async () => {
     if (!user) return;
@@ -107,6 +158,60 @@ export default function ProfilePage() {
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Your Profile</h1>
           <p className="text-lg text-slate-600">{user.email}</p>
         </header>
+
+        {/* Subscription Status */}
+        {subscription && (
+          <div className="mb-12 bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Subscription Status</h2>
+                <div className="flex items-center gap-3">
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    subscription.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
+                    subscription.subscription_status === 'trialing' ? 'bg-blue-100 text-blue-800' :
+                    subscription.subscription_status === 'past_due' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-slate-100 text-slate-800'
+                  }`}>
+                    {subscription.subscription_status === 'active' ? 'Premium Active' :
+                     subscription.subscription_status === 'trialing' ? 'Free Trial' :
+                     subscription.subscription_status === 'past_due' ? 'Payment Due' :
+                     'Free Plan'}
+                  </span>
+                  {subscription.trial_end_date && new Date(subscription.trial_end_date) > new Date() && (
+                    <span className="text-sm text-slate-600">
+                      Trial ends {new Date(subscription.trial_end_date).toLocaleDateString()}
+                    </span>
+                  )}
+                  {subscription.current_period_end && (
+                    <span className="text-sm text-slate-600">
+                      Renews {new Date(subscription.current_period_end).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                {(subscription.subscription_status === 'active' ||
+                  subscription.subscription_status === 'trialing' ||
+                  subscription.subscription_status === 'past_due') ? (
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {portalLoading ? 'Loading...' : 'Manage Subscription'}
+                  </button>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all"
+                  >
+                    Upgrade to Premium
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {stats && (
           <>
