@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import PaywallModal from '@/components/PaywallModal';
+import WordStatsChart from '@/components/WordStatsChart';
 
 type Sentence = {
   id: string;
@@ -37,6 +38,8 @@ export default function Home() {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [isPlayingRecording, setIsPlayingRecording] = useState(false);
   const [checkingPronunciation, setCheckingPronunciation] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(1);
+  const [currentRepeat, setCurrentRepeat] = useState(0);
 
   // Flow control: listen -> speak -> type
   const [hasListened, setHasListened] = useState(false);
@@ -45,6 +48,14 @@ export default function Home() {
   // Usage tracking
   const [usageData, setUsageData] = useState<any>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  // Word tracking
+  const [sessionId] = useState(() => {
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+    return `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  });
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const recordedAudioRef = useRef<HTMLAudioElement>(null);
@@ -79,6 +90,27 @@ export default function Home() {
       setUsageData(data);
     } catch (error) {
       console.error('Error checking usage:', error);
+    }
+  };
+
+  const trackWords = async (text: string, actionType: 'heard' | 'typed' | 'spoken', repeatCount = 1) => {
+    if (!user || !text) return;
+
+    try {
+      await fetch('/api/track-words', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          sessionId,
+          text,
+          actionType,
+          sentenceId: sentence?.id,
+          repeatCount,
+        }),
+      });
+    } catch (error) {
+      console.error('Error tracking words:', error);
     }
   };
 
@@ -193,17 +225,42 @@ export default function Home() {
     setHasSpoken(false);
   };
 
-  const handlePlayAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
+  const handlePlayAudio = async () => {
+    if (audioRef.current && sentence) {
       setIsPlaying(true);
+      setCurrentRepeat(0);
+
+      for (let i = 0; i < repeatCount; i++) {
+        setCurrentRepeat(i + 1);
+        audioRef.current.currentTime = 0;
+        await audioRef.current.play();
+
+        // Wait for audio to finish
+        await new Promise<void>((resolve) => {
+          const handleEnd = () => {
+            audioRef.current?.removeEventListener('ended', handleEnd);
+            resolve();
+          };
+          audioRef.current?.addEventListener('ended', handleEnd);
+        });
+
+        // Add 1 second delay between repeats (except after the last one)
+        if (i < repeatCount - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      setIsPlaying(false);
+      setHasListened(true);
+      setCurrentRepeat(0);
+
+      // Track words heard (with repeat count)
+      await trackWords(sentence.text, 'heard', repeatCount);
     }
   };
 
   const handleAudioEnded = () => {
-    setIsPlaying(false);
-    setHasListened(true);
+    // Handled in handlePlayAudio now
   };
 
   const startRecording = async () => {
@@ -311,6 +368,11 @@ export default function Home() {
         setTranscription(data.transcription);
         setPronunciationScore(data.score);
         setCheckingPronunciation(false);
+
+        // Track spoken words
+        if (data.transcription) {
+          await trackWords(data.transcription, 'spoken');
+        }
       };
     } catch (error) {
       console.error('Error:', error);
@@ -354,6 +416,9 @@ export default function Home() {
 
       const data = await res.json();
       setWrittenScore(data.score);
+
+      // Track typed words
+      await trackWords(attemptText, 'typed');
 
       // Refresh usage data
       await checkUsage();
@@ -431,6 +496,9 @@ export default function Home() {
             Improve your listening comprehension and pronunciation
           </p>
         </header>
+
+        {/* Word Stats Chart */}
+        {user && <WordStatsChart userId={user.id} sessionId={sessionId} />}
 
         {/* Main Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden">
@@ -516,56 +584,73 @@ export default function Home() {
             <div className="p-8 border-b border-slate-100">
               <div className="mb-6 text-center">
                 <div className="inline-flex items-center gap-3 bg-slate-100 px-6 py-3 rounded-full">
-                  <div className={`flex items-center gap-2 ${hasListened ? 'text-green-600' : 'text-slate-400'}`}>
+                  <div className={`flex items-center gap-2 ${hasListened ? 'text-green-600' : 'text-slate-700'}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasListened ? 'bg-green-100' : 'bg-slate-200'}`}>
-                      {hasListened ? '✓' : '1'}
+                      {hasListened ? '✓' : '🎧'}
                     </div>
                     <span className="font-semibold text-sm">Listen</span>
                   </div>
                   <div className="w-8 border-t-2 border-slate-300"></div>
-                  <div className={`flex items-center gap-2 ${hasSpoken ? 'text-green-600' : hasListened ? 'text-slate-700' : 'text-slate-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasSpoken ? 'bg-green-100' : hasListened ? 'bg-slate-200' : 'bg-slate-200'}`}>
-                      {hasSpoken ? '✓' : '2'}
+                  <div className={`flex items-center gap-2 ${hasSpoken ? 'text-green-600' : 'text-slate-700'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasSpoken ? 'bg-green-100' : 'bg-slate-200'}`}>
+                      {hasSpoken ? '✓' : '🎤'}
                     </div>
                     <span className="font-semibold text-sm">Speak</span>
                   </div>
                   <div className="w-8 border-t-2 border-slate-300"></div>
-                  <div className={`flex items-center gap-2 ${hasSpoken ? 'text-slate-700' : 'text-slate-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasSpoken ? 'bg-slate-200' : 'bg-slate-200'}`}>
-                      3
+                  <div className={`flex items-center gap-2 ${attemptText.trim() ? 'text-green-600' : 'text-slate-700'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${attemptText.trim() ? 'bg-green-100' : 'bg-slate-200'}`}>
+                      {attemptText.trim() ? '✓' : '⌨️'}
                     </div>
                     <span className="font-semibold text-sm">Type</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={handlePlayAudio}
-                  disabled={!audioUrl || loading}
-                  className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed min-w-[140px]"
-                >
-                  {isPlaying ? '🔊 Playing' : '▶️ Listen'}
-                </button>
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Repeat:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={repeatCount}
+                    onChange={(e) => setRepeatCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                    className="w-16 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-center font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <span className="text-sm text-slate-600">time(s)</span>
+                </div>
 
-                <button
-                  onClick={toggleRecording}
-                  disabled={!hasListened || !audioUrl || loading}
-                  className={`${
-                    isRecording ? 'bg-red-600 hover:bg-red-700 shadow-red-200/50' : 'bg-red-600 hover:bg-red-700 shadow-red-200/50'
-                  } text-white px-8 py-4 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all shadow-lg hover:shadow-xl disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed min-w-[140px]`}
-                >
-                  {isRecording ? '⏹ Stop' : '🎤 Speak'}
-                </button>
-
-                {recordedAudioUrl && (
+                <div className="flex items-center gap-4">
                   <button
-                    onClick={playRecording}
-                    className="bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-lg shadow-green-200/50 hover:shadow-xl min-w-[140px]"
+                    onClick={handlePlayAudio}
+                    disabled={!audioUrl || loading || isPlaying}
+                    className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed min-w-[140px]"
                   >
-                    {isPlayingRecording ? '🔊 Playing' : '▶️ Play'}
+                    {isPlaying ? `🔊 Playing (${currentRepeat}/${repeatCount})` : '▶️ Listen'}
                   </button>
-                )}
+
+                  <button
+                    onClick={toggleRecording}
+                    disabled={!audioUrl || loading}
+                    className={`${
+                      isRecording ? 'bg-red-600 hover:bg-red-700 shadow-red-200/50' : 'bg-red-600 hover:bg-red-700 shadow-red-200/50'
+                    } text-white px-8 py-4 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all shadow-lg hover:shadow-xl disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed min-w-[140px]`}
+                  >
+                    {isRecording ? '⏹ Stop' : '🎤 Speak'}
+                  </button>
+
+                  {recordedAudioUrl && (
+                    <button
+                      onClick={playRecording}
+                      className="bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-lg shadow-green-200/50 hover:shadow-xl min-w-[140px]"
+                    >
+                      {isPlayingRecording ? '🔊 Playing' : '▶️ Play'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {checkingPronunciation && (
@@ -603,30 +688,33 @@ export default function Home() {
             <div className="p-8 border-b border-slate-100">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Type what you hear */}
-                <div className={!hasSpoken ? 'opacity-50 pointer-events-none' : ''}>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-3">
-                    Type what you hear.. {!hasSpoken && <span className="text-xs text-slate-500">(Complete speaking first)</span>}
+                    Type what you hear
                   </label>
                   <textarea
                     value={attemptText}
                     onChange={(e) => setAttemptText(e.target.value)}
-                    placeholder={hasSpoken ? "Type here..." : "Complete listen and speak steps first..."}
-                    disabled={!hasSpoken}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none mb-4 hover:bg-slate-100 disabled:cursor-not-allowed"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && attemptText.trim() && !loading) {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                    placeholder="Type here... (Press Enter to submit)"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none mb-4 hover:bg-slate-100"
                     rows={6}
                     spellCheck={false}
                     autoCorrect="off"
                     autoCapitalize="off"
                   />
-                  {!writtenScore && (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading || !attemptText.trim() || !hasSpoken}
-                      className="w-full bg-slate-900 text-white py-3 px-6 rounded-xl font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all"
-                    >
-                      Submit
-                    </button>
-                  )}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading || !attemptText.trim()}
+                    className="w-full bg-slate-900 text-white py-3 px-6 rounded-xl font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all"
+                  >
+                    {writtenScore !== null ? 'Submit Again' : 'Submit'}
+                  </button>
                 </div>
 
                 {/* Right: What you said */}
