@@ -443,7 +443,6 @@ export default function Home() {
       setIsRecordingReading(true);
 
       // Store reference to stop it later
-      (mediaRecorder as any).stream = stream;
       (window as any).readingMediaRecorder = mediaRecorder;
     } catch (error) {
       console.error('Error accessing microphone:', error);
