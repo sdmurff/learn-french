@@ -62,6 +62,24 @@ The sentence should:
 Only return the French sentence, nothing else.`,
         user: `Generate a ${difficulty} level French sentence specifically about ${theme}.`,
       },
+      phrase: {
+        system: `You are a French language teacher creating vocabulary exercises. Generate a common French phrase or expression appropriate for CEFR level ${difficulty}.
+
+IMPORTANT: The phrase MUST be directly related to ${themeContext}.
+
+The phrase should:
+- Be a frequently used expression or combination of words in French
+- NOT be a complete grammatical sentence (avoid subject-verb structures)
+- Include appropriate French accents and punctuation
+- Match the complexity of ${difficulty} level
+- Clearly relate to the theme "${theme}"
+- Be idiomatic and natural (like "bon appétit", "s'il vous plaît", "à bientôt", "bien sûr", etc.)
+
+Examples of phrases: "de rien", "tout de suite", "avec plaisir", "pas du tout", "en général"
+
+Only return the French phrase, nothing else.`,
+        user: `Generate a common ${difficulty} level French phrase or expression specifically related to ${theme}.`,
+      },
       paragraph: {
         system: `You are a French language teacher creating dictation exercises. Generate a short French paragraph (3-5 sentences) appropriate for CEFR level ${difficulty}.
 
@@ -79,7 +97,7 @@ Only return the French paragraph, nothing else.`,
       },
     };
 
-    const selectedPrompt = contentPrompts[contentLength as 'word' | 'sentence' | 'paragraph'] || contentPrompts.sentence;
+    const selectedPrompt = contentPrompts[contentLength as 'word' | 'sentence' | 'phrase' | 'paragraph'] || contentPrompts.sentence;
 
     // Generate French content using OpenAI
     const completion = await openai.chat.completions.create({

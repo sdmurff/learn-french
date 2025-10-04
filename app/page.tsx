@@ -25,7 +25,7 @@ export default function Home() {
 
   const [cefrLevel, setCefrLevel] = useState('A1');
   const [topic, setTopic] = useState('General');
-  const [contentLength, setContentLength] = useState<'word' | 'sentence' | 'paragraph'>('sentence');
+  const [contentLength, setContentLength] = useState<'word' | 'sentence' | 'phrase' | 'paragraph'>('sentence');
   const [sentence, setSentence] = useState<Sentence | null>(null);
   const [allSentences, setAllSentences] = useState<Sentence[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -649,11 +649,12 @@ export default function Home() {
                 </label>
                 <select
                   value={contentLength}
-                  onChange={(e) => setContentLength(e.target.value as 'word' | 'sentence' | 'paragraph')}
+                  onChange={(e) => setContentLength(e.target.value as 'word' | 'sentence' | 'phrase' | 'paragraph')}
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 >
                   <option value="word">📝 Word</option>
                   <option value="sentence">💬 Sentence</option>
+                  <option value="phrase">💭 Phrase</option>
                   <option value="paragraph">📄 Paragraph</option>
                 </select>
               </div>
