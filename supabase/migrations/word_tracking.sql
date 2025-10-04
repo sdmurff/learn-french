@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS word_tracking (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   session_id UUID NOT NULL,
   word TEXT NOT NULL,
-  action_type TEXT NOT NULL CHECK (action_type IN ('heard', 'typed', 'spoken')),
+  action_type TEXT NOT NULL CHECK (action_type IN ('heard', 'typed', 'spoken', 'read')),
   sentence_id UUID REFERENCES sentences(id) ON DELETE SET NULL,
   repeat_count INTEGER DEFAULT 1,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

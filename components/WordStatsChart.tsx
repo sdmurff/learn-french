@@ -9,6 +9,10 @@ type WordStats = {
   distinctTyped: number;
   totalSpoken: number;
   distinctSpoken: number;
+  totalReadAloud: number;
+  distinctReadAloud: number;
+  totalReadSilent: number;
+  distinctReadSilent: number;
 };
 
 type Goals = {
@@ -119,7 +123,7 @@ export default function WordStatsChart({ userId, sessionId }: Props) {
 
   const getTotalWords = (stats: WordStats | null) => {
     if (!stats) return 0;
-    return stats.totalHeard + stats.totalTyped + stats.totalSpoken;
+    return stats.totalHeard + stats.totalTyped + stats.totalSpoken + stats.totalReadAloud + stats.totalReadSilent;
   };
 
   const renderStatSection = (
@@ -195,6 +199,38 @@ export default function WordStatsChart({ userId, sessionId }: Props) {
                 <div
                   className={`bg-gradient-to-r ${getProgressColor(stats.totalSpoken, goal)} h-full rounded-full transition-all duration-500`}
                   style={{ width: `${getProgress(stats.totalSpoken, goal)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Read Aloud */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-slate-700">🎙️ Read Aloud</span>
+                <span className="text-sm text-slate-600">
+                  {stats.totalReadAloud} ({stats.distinctReadAloud} unique)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div
+                  className={`bg-gradient-to-r ${getProgressColor(stats.totalReadAloud, goal)} h-full rounded-full transition-all duration-500`}
+                  style={{ width: `${getProgress(stats.totalReadAloud, goal)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Read Silently */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-slate-700">📖 Read Silently</span>
+                <span className="text-sm text-slate-600">
+                  {stats.totalReadSilent} ({stats.distinctReadSilent} unique)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div
+                  className={`bg-gradient-to-r ${getProgressColor(stats.totalReadSilent, goal)} h-full rounded-full transition-all duration-500`}
+                  style={{ width: `${getProgress(stats.totalReadSilent, goal)}%` }}
                 />
               </div>
             </div>

@@ -1,7 +1,120 @@
+You are the world’s best software engineer and product manager, with deep expertise in both technical architecture and product design. Your task is to help me create a **clear, complete, and well-structured software requirements specification**.  
+
+This document will serve as input for **AI coding agents**, so it must meet the following standards:  
+
+- **Precision & Clarity**: Define the problem and goals in unambiguous terms.  
+- **Structure**: Organize requirements by user story, front-end, back-end, and database schema.  
+- **Coverage**: Include functional and non-functional requirements, acceptance criteria, assumptions, constraints, and edge cases.  
+- **Traceability**: Use requirement IDs and consistent formatting for easy reference.  
+- **Machine-Readable**: Use structured YAML/JSON-like blocks for requirements and schema definitions so AI agents can parse and implement.  
+
+Always:  
+- Ask clarifying questions if needed.  
+- Iterate with me until the requirements are production-ready.  
+- Optimize for maximum clarity, conciseness, and completeness.  
+
+---
+
+## User Story
+```text
+As a **language learner**,  
+I want to **hear a French sentence and type what I hear**,  
+so that I can **practice listening comprehension, spelling accuracy, and track my vocabulary growth**.
+```
+
+---
+
+## Tech Stack
+- **Frontend**: React/Next.js for user experience.  
+- **Backend**: Supabase (Postgres database, authentication, real-time sync).  
+- **Serverless Logic**: Supabase Edge Functions for grading and business logic.  
+- **AI Services**:  
+  - OpenAI API (text generation) for sentence generation.  
+  - OpenAI API (audio generation) for audio clips of selected sentences.  
+
+---
+
+## Frontend (React/Next.js)
+The UI must support at least these features:  
+
+- **Dropdown menus**:  
+  - Difficulty level (CEFR A1–C2).  
+  - Sentence source (initially only: *Generate new sentence*).  
+- **Sentence generation**:  
+  - Button to generate a new sentence at the chosen difficulty via backend.  
+- **Audio playback**:  
+  - Play button to request audio generation and playback.  
+  - Playback speed adjustment.  
+  - Unlimited replays.  
+- **Input**:  
+  - Text field for learner to type what they hear.  
+- **Submission & feedback**:  
+  - Submit button.  
+  - Feedback panel: character-level diff + percentage correct metric.  
+
+---
+
+## Requirements Format
+Use this structured YAML format for requirements:
+
+```yaml
+requirements:
+  - id: UI-01
+    layer: front_end
+    trigger: "WHEN learner opens a new session"
+    behavior: "Display a 'Listen' button"
+    acceptance_criteria:
+      - Button is visible on initial screen
+      - Button is labeled 'Listen'
+      - Button is accessible (keyboard focusable, screen-reader labeled)
+
+  - id: UI-02
+    layer: front_end
+    trigger: "WHEN learner clicks 'Replay'"
+    behavior: "Replay the audio clip"
+    acceptance_criteria:
+      - Audio plays from start
+      - Input field remains editable
+      - Unlimited replays allowed
+```
+
+---
+
+## Database Schema
+Also provide a **normalized database schema** (SQL or YAML style) that will be needed, including:  
+- Table names  
+- Column names and types  
+- Relationships (if any)  
+- Indexes where relevant  
+
+---
+
+✅ **Deliverable**: A complete software requirements specification (SRS) with:  
+1. Functional & non-functional requirements (in YAML format).  
+2. Front-end and back-end layers clearly separated.  
+3. Database schema needed to support the system.  
+
 # 📄 Software Requirements Specification
 
 ## 1. Overview
 Learners hear French sentences, type what they hear, and receive immediate feedback. Adds **difficulty level** and **topic/theme selection** to guide sentence generation.  
+
+## User Story
+```text
+As a **language learner**,  
+I want to **hear a French sentence and type what I hear**,  
+so that I can **practice listening comprehension, spelling accuracy, and track my vocabulary growth**.
+```
+
+---
+
+## Tech Stack
+- **Frontend**: React/Next.js for user experience.  
+- **Backend**: Supabase (Postgres database, authentication, real-time sync).  
+- **Serverless Logic**: Supabase Edge Functions for grading and business logic.  
+- **AI Services**:  
+  - OpenAI API (text generation) for sentence generation.  
+  - OpenAI API (audio generation) for audio clips of selected sentences.  
 
 ---
 
@@ -17,7 +130,7 @@ requirements:
     behavior: "Display dropdowns for difficulty and theme selection"
     acceptance_criteria:
       - CEFR level dropdown visible (A1–C2, default A1)
-      - Theme dropdown visible with at least: ['General', 'Travel', 'Food', 'Daily Life']
+      - Theme dropdown visible with at least: ['Daily Life', 'Travel', 'Food']
       - Default theme is 'General'
 
   - id: UI-02
@@ -193,3 +306,4 @@ non_functional:
 - Extra whitespace/punctuation → treated as errors.  
 - Rare French chars (ç, œ, é, à) → must grade correctly.  
 - Audio API failure → return retry option.  
+

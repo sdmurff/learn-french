@@ -186,7 +186,7 @@ The app enforces these limits:
 Limits reset at midnight UTC.
 
 ---
-
+3
 ## Step 8: Deploy to Production
 
 1. **Add environment variables to Vercel:**
@@ -245,7 +245,7 @@ Limits reset at midnight UTC.
 ---
 
 ## Additional Resources
-
+1
 - [Stripe Subscriptions Docs](https://stripe.com/docs/billing/subscriptions/overview)
 - [Stripe Webhooks Guide](https://stripe.com/docs/webhooks)
 - [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security)

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { difficulty, theme } = await request.json();
+    const { difficulty, theme, contentLength = 'sentence' } = await request.json();
 
     if (!difficulty || !theme) {
       return NextResponse.json(
@@ -32,13 +32,24 @@ export async function POST(request: NextRequest) {
 
     const themeContext = themeGuidance[theme] || themeGuidance['General'];
 
-    // Generate French sentence using OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a French language teacher creating dictation exercises. Generate a single French sentence appropriate for CEFR level ${difficulty}.
+    // Content length specific prompts
+    const contentPrompts = {
+      word: {
+        system: `You are a French language teacher creating vocabulary exercises. Generate a single French word appropriate for CEFR level ${difficulty}.
+
+IMPORTANT: The word MUST be directly related to ${themeContext}.
+
+The word should:
+- Be a common, useful vocabulary word
+- Include appropriate French accents
+- Match the complexity of ${difficulty} level
+- Clearly relate to the theme "${theme}"
+
+Only return the French word, nothing else (no articles, no punctuation).`,
+        user: `Generate a single ${difficulty} level French word specifically related to ${theme}.`,
+      },
+      sentence: {
+        system: `You are a French language teacher creating dictation exercises. Generate a single French sentence appropriate for CEFR level ${difficulty}.
 
 IMPORTANT: The sentence MUST be directly about ${themeContext}.
 
@@ -49,10 +60,38 @@ The sentence should:
 - Clearly relate to the theme "${theme}"
 
 Only return the French sentence, nothing else.`,
+        user: `Generate a ${difficulty} level French sentence specifically about ${theme}.`,
+      },
+      paragraph: {
+        system: `You are a French language teacher creating dictation exercises. Generate a short French paragraph (3-5 sentences) appropriate for CEFR level ${difficulty}.
+
+IMPORTANT: The paragraph MUST be directly about ${themeContext}.
+
+The paragraph should:
+- Be grammatically correct and natural
+- Include appropriate French accents and punctuation
+- Match the complexity of ${difficulty} level
+- Clearly relate to the theme "${theme}"
+- Form a coherent, connected set of sentences
+
+Only return the French paragraph, nothing else.`,
+        user: `Generate a short ${difficulty} level French paragraph (3-5 sentences) specifically about ${theme}.`,
+      },
+    };
+
+    const selectedPrompt = contentPrompts[contentLength as 'word' | 'sentence' | 'paragraph'] || contentPrompts.sentence;
+
+    // Generate French content using OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: selectedPrompt.system,
         },
         {
           role: 'user',
-          content: `Generate a ${difficulty} level French sentence specifically about ${theme}.`,
+          content: selectedPrompt.user,
         },
       ],
       temperature: 0.9,
@@ -67,11 +106,30 @@ Only return the French sentence, nothing else.`,
       );
     }
 
+    // Generate English translation
+    const translationCompletion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional translator. Translate the following French text to English. Provide only the English translation, nothing else.',
+        },
+        {
+          role: 'user',
+          content: sentenceText,
+        },
+      ],
+      temperature: 0.3,
+    });
+
+    const translation = translationCompletion.choices[0]?.message?.content?.trim();
+
     // Store sentence in database
     const { data, error } = await supabase
       .from('sentences')
       .insert({
         text: sentenceText,
+        translation: translation || null,
         difficulty,
         theme,
         source: 'generated',
@@ -90,6 +148,7 @@ Only return the French sentence, nothing else.`,
     return NextResponse.json({
       id: data.id,
       text: sentenceText,
+      translation: translation || null,
       difficulty,
       theme,
     });

@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
       distinctTyped: new Set<string>(),
       totalSpoken: 0,
       distinctSpoken: new Set<string>(),
+      totalReadAloud: 0,
+      distinctReadAloud: new Set<string>(),
+      totalReadSilent: 0,
+      distinctReadSilent: new Set<string>(),
     };
 
     allTimeData?.forEach(item => {
@@ -59,6 +63,12 @@ export async function POST(request: NextRequest) {
       } else if (item.action_type === 'spoken') {
         allTimeStats.totalSpoken += 1;
         allTimeStats.distinctSpoken.add(item.word);
+      } else if (item.action_type === 'read_aloud') {
+        allTimeStats.totalReadAloud += 1;
+        allTimeStats.distinctReadAloud.add(item.word);
+      } else if (item.action_type === 'read_silent') {
+        allTimeStats.totalReadSilent += 1;
+        allTimeStats.distinctReadSilent.add(item.word);
       }
     });
 
@@ -76,6 +86,10 @@ export async function POST(request: NextRequest) {
       distinctTyped: new Set<string>(),
       totalSpoken: 0,
       distinctSpoken: new Set<string>(),
+      totalReadAloud: 0,
+      distinctReadAloud: new Set<string>(),
+      totalReadSilent: 0,
+      distinctReadSilent: new Set<string>(),
     };
 
     if (!weeklyError && weeklyData) {
@@ -89,6 +103,12 @@ export async function POST(request: NextRequest) {
         } else if (item.action_type === 'spoken') {
           weeklyStats.totalSpoken += 1;
           weeklyStats.distinctSpoken.add(item.word);
+        } else if (item.action_type === 'read_aloud') {
+          weeklyStats.totalReadAloud += 1;
+          weeklyStats.distinctReadAloud.add(item.word);
+        } else if (item.action_type === 'read_silent') {
+          weeklyStats.totalReadSilent += 1;
+          weeklyStats.distinctReadSilent.add(item.word);
         }
       });
     }
@@ -112,6 +132,10 @@ export async function POST(request: NextRequest) {
           distinctTyped: new Set<string>(),
           totalSpoken: 0,
           distinctSpoken: new Set<string>(),
+          totalReadAloud: 0,
+          distinctReadAloud: new Set<string>(),
+          totalReadSilent: 0,
+          distinctReadSilent: new Set<string>(),
         };
 
         sessionData?.forEach(item => {
@@ -124,6 +148,12 @@ export async function POST(request: NextRequest) {
           } else if (item.action_type === 'spoken') {
             sessionStats!.totalSpoken += 1;
             sessionStats!.distinctSpoken.add(item.word);
+          } else if (item.action_type === 'read_aloud') {
+            sessionStats!.totalReadAloud += 1;
+            sessionStats!.distinctReadAloud.add(item.word);
+          } else if (item.action_type === 'read_silent') {
+            sessionStats!.totalReadSilent += 1;
+            sessionStats!.distinctReadSilent.add(item.word);
           }
         });
       }
@@ -137,6 +167,10 @@ export async function POST(request: NextRequest) {
         distinctTyped: sessionStats.distinctTyped.size,
         totalSpoken: sessionStats.totalSpoken,
         distinctSpoken: sessionStats.distinctSpoken.size,
+        totalReadAloud: sessionStats.totalReadAloud,
+        distinctReadAloud: sessionStats.distinctReadAloud.size,
+        totalReadSilent: sessionStats.totalReadSilent,
+        distinctReadSilent: sessionStats.distinctReadSilent.size,
       } : null,
       weekly: {
         totalHeard: weeklyStats.totalHeard,
@@ -145,6 +179,10 @@ export async function POST(request: NextRequest) {
         distinctTyped: weeklyStats.distinctTyped.size,
         totalSpoken: weeklyStats.totalSpoken,
         distinctSpoken: weeklyStats.distinctSpoken.size,
+        totalReadAloud: weeklyStats.totalReadAloud,
+        distinctReadAloud: weeklyStats.distinctReadAloud.size,
+        totalReadSilent: weeklyStats.totalReadSilent,
+        distinctReadSilent: weeklyStats.distinctReadSilent.size,
       },
       allTime: {
         totalHeard: allTimeStats.totalHeard,
@@ -153,6 +191,10 @@ export async function POST(request: NextRequest) {
         distinctTyped: allTimeStats.distinctTyped.size,
         totalSpoken: allTimeStats.totalSpoken,
         distinctSpoken: allTimeStats.distinctSpoken.size,
+        totalReadAloud: allTimeStats.totalReadAloud,
+        distinctReadAloud: allTimeStats.distinctReadAloud.size,
+        totalReadSilent: allTimeStats.totalReadSilent,
+        distinctReadSilent: allTimeStats.distinctReadSilent.size,
       },
     });
   } catch (error) {

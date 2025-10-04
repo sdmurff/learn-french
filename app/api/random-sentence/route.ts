@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       sentence: {
         id: sentence.id,
         text: sentence.text,
+        translation: sentence.translation || null,
         difficulty: sentence.difficulty,
         theme: sentence.theme,
         audioUrl: sentence.audio_url,

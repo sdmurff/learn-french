@@ -5,11 +5,11 @@ The **Listen & Type** activity is the first core module of the language learning
 It combines **AI-powered sentence generation, audio playback, typed input capture, grading, and progress tracking** with long-term vocabulary frequency tracking.  
 
 The design leverages:
-- **Supabase** for authentication, database (Postgres), real-time sync.  
 - **Frontend** React/Next.js for user experience.  
+- **Supabase** for authentication, database (Postgres), real-time sync.  
 - **Backend functions** (Supabase Edge Functions) for grading and business logic.  
-- **TTS API (on-demand)** for generating audio clips from stored text.  
-- **OpenAI API** for sentence generation (MVP) and possibly adaptive feedback later.  
+- **OpenAI API: text generation** for sentence generation
+- **OpenAI API: audio generation** for audio generation of selected sentence
 
 ---
 
@@ -42,14 +42,18 @@ The design leverages:
 ## Components
 
 ### 1. Frontend (React/Next.js)
-- Allows user to select **difficulty level** (CEFR A1–C2).  
-- Requests sentences from OpenAI API via backend.  
-- Plays generated audio clips (via TTS API).  
-- Captures user input.  
-- Displays feedback, error highlights, and metrics.  
-- Renders **Personal Dictionary** (with filters, pagination).  
+- Allows user to select **difficulty level** (CEFR A1, A2, B1, B2, C1, and C2).
+- Allows user to select sentence source
+  - Option 1 - Default: Generate a new sentence at the selected difficulty level from OpenAI API via backend.
+  - Option 2 - To be added in a future release: select from a list of built in texts such as scriptures and open sources books, stories, and movie scripts.\
+  - Option 3 - To be added in a future release: user uploads a pdf or copy/pastes in a text. system chunks it into sentences.
+- Once a sentence is loaded from one of the sources there is a play button that plays generated audio clips (via TTS API) with speed adjustment option. User may repeat the audio by pressing the button as many times as they like.
+- Text input field for user to type what they here.
+- Submit button allowing user to submit what they have typed
+- Feedback panel, error highlights, and metrics.  
+- Words in the sentence are added to the **Personal Dictionary** .  
 
-### 2. Supabase (Core Backend)
+### 2. Backend (Supabase)
 - **Auth**: User sign-in, profiles.  
 - **Postgres**: Tables for sentences, words, sessions, frequency maps.  
 - **Realtime**: Live progress updates (e.g., word counters increment live).  
@@ -93,7 +97,7 @@ The design leverages:
 - **sentences**
   - `id` (PK)  
   - `text` (French sentence)  
-  - `source` (enum: ai_generated, user_provided, scripture, etc.)  
+  - `source` (enum: ai_generated, user_provided, built_in_library)  
   - `difficulty_level` (A1–C2)  
   - `topic` (optional text)  
   - `created_at`  

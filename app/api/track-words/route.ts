@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['heard', 'typed', 'spoken'].includes(actionType)) {
+    if (!['heard', 'typed', 'spoken', 'read_aloud', 'read_silent'].includes(actionType)) {
       return NextResponse.json(
-        { error: 'actionType must be one of: heard, typed, spoken' },
+        { error: 'actionType must be one of: heard, typed, spoken, read_aloud, read_silent' },
         { status: 400 }
       );
     }

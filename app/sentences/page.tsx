@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type Sentence = {
   id: string;
   text: string;
+  translation?: string;
   difficulty: string;
   theme: string;
   created_at: string;
@@ -17,6 +18,8 @@ type WordStat = {
   timesHeard: number;
   timesTyped: number;
   timesSpoken: number;
+  timesReadAloud: number;
+  timesReadSilent: number;
   totalInteractions: number;
   lastSeen: string;
 };
@@ -193,7 +196,12 @@ export default function SentencesPage() {
                       {sentences.map((sentence) => (
                         <tr key={sentence.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4 text-slate-900 font-mono">
-                            {sentence.text}
+                            <div>{sentence.text}</div>
+                            {sentence.translation && (
+                              <div className="text-xs text-slate-500 mt-1 italic font-sans">
+                                {sentence.translation}
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
@@ -248,6 +256,8 @@ export default function SentencesPage() {
                         <option value="heard">🎧 Heard</option>
                         <option value="typed">⌨️ Typed</option>
                         <option value="spoken">🎤 Spoken</option>
+                        <option value="read_aloud">🎙️ Read Aloud</option>
+                        <option value="read_silent">📖 Read Silently</option>
                       </select>
                     </div>
 
@@ -262,6 +272,8 @@ export default function SentencesPage() {
                         <option value="timesHeard">Most Heard</option>
                         <option value="timesTyped">Most Typed</option>
                         <option value="timesSpoken">Most Spoken</option>
+                        <option value="timesReadAloud">Most Read Aloud</option>
+                        <option value="timesReadSilent">Most Read Silently</option>
                         <option value="totalInteractions">Total Interactions</option>
                         <option value="alphabetical">Alphabetical</option>
                         <option value="lastSeen">Recently Seen</option>
@@ -316,6 +328,12 @@ export default function SentencesPage() {
                                 🎤 Spoken
                               </th>
                               <th className="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                🎙️ Read Aloud
+                              </th>
+                              <th className="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                📖 Read Silently
+                              </th>
+                              <th className="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
                                 Total
                               </th>
                               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -337,6 +355,12 @@ export default function SentencesPage() {
                                 </td>
                                 <td className="px-6 py-4 text-center text-slate-700">
                                   {word.timesSpoken}
+                                </td>
+                                <td className="px-6 py-4 text-center text-slate-700">
+                                  {word.timesReadAloud}
+                                </td>
+                                <td className="px-6 py-4 text-center text-slate-700">
+                                  {word.timesReadSilent}
                                 </td>
                                 <td className="px-6 py-4 text-center font-semibold text-indigo-600">
                                   {word.totalInteractions}

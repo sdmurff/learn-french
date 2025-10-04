@@ -9,6 +9,8 @@ type WordStat = {
   timesHeard: number;
   timesTyped: number;
   timesSpoken: number;
+  timesReadAloud: number;
+  timesReadSilent: number;
   totalInteractions: number;
   lastSeen: string;
 };
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
           timesHeard: 0,
           timesTyped: 0,
           timesSpoken: 0,
+          timesReadAloud: 0,
+          timesReadSilent: 0,
           totalInteractions: 0,
           lastSeen: item.created_at,
         });
@@ -64,6 +68,10 @@ export async function POST(request: NextRequest) {
         wordStat.timesTyped += 1;
       } else if (item.action_type === 'spoken') {
         wordStat.timesSpoken += 1;
+      } else if (item.action_type === 'read_aloud') {
+        wordStat.timesReadAloud += 1;
+      } else if (item.action_type === 'read_silent') {
+        wordStat.timesReadSilent += 1;
       }
 
       // Update last seen if this is more recent
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Convert to array and calculate total interactions
     let words = Array.from(wordMap.values()).map(word => ({
       ...word,
-      totalInteractions: word.timesHeard + word.timesTyped + word.timesSpoken,
+      totalInteractions: word.timesHeard + word.timesTyped + word.timesSpoken + word.timesReadAloud + word.timesReadSilent,
     }));
 
     // Apply search filter
@@ -85,11 +93,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply action type filter
-    if (filterBy && ['heard', 'typed', 'spoken'].includes(filterBy)) {
+    if (filterBy && ['heard', 'typed', 'spoken', 'read_aloud', 'read_silent'].includes(filterBy)) {
       words = words.filter(w => {
         if (filterBy === 'heard') return w.timesHeard > 0;
         if (filterBy === 'typed') return w.timesTyped > 0;
         if (filterBy === 'spoken') return w.timesSpoken > 0;
+        if (filterBy === 'read_aloud') return w.timesReadAloud > 0;
+        if (filterBy === 'read_silent') return w.timesReadSilent > 0;
         return true;
       });
     }
@@ -103,6 +113,10 @@ export async function POST(request: NextRequest) {
           return b.timesTyped - a.timesTyped;
         case 'timesSpoken':
           return b.timesSpoken - a.timesSpoken;
+        case 'timesReadAloud':
+          return b.timesReadAloud - a.timesReadAloud;
+        case 'timesReadSilent':
+          return b.timesReadSilent - a.timesReadSilent;
         case 'totalInteractions':
           return b.totalInteractions - a.totalInteractions;
         case 'alphabetical':
